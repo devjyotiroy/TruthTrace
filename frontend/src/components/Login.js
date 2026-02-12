@@ -14,7 +14,7 @@ function Login({ onLogin, onSwitchToSignup, onBack }) {
     setLoading(true);
 
     try {
-      const res = await axios.post("https://truthtrace.onrender.com/api/auth/login", {
+      const res = await axios.post("https://localhost:5000/api/auth/login", {
         email,
         password
       });

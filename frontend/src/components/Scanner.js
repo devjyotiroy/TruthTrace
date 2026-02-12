@@ -35,7 +35,7 @@ function Scanner({ user, onLogout }) {
     
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.post("http://localhost:5000/api/scan", { url }, {
+      const res = await axios.post("https://truthtrace.onrender.com/api/scan", { url }, {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 60000
       });

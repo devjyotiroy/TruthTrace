@@ -1,4 +1,14 @@
-const puppeteer = require("puppeteer");
+let puppeteer;
+let chromium;
+
+const isRender = process.env.RENDER === "true";
+
+if (isRender) {
+    puppeteer = require("puppeteer-core");
+    chromium = require("@sparticuz/chromium");
+} else {
+    puppeteer = require("puppeteer");
+}
 
 const trackerDomains = [
     "google-analytics", "googletagmanager", "doubleclick", "facebook", "fbcdn",
@@ -9,38 +19,49 @@ const trackerDomains = [
 
 async function scanWebsite(url) {
     let browser;
+
     try {
-        browser = await puppeteer.launch({ 
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
-        
+
+        if (isRender) {
+            browser = await puppeteer.launch({
+                args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
+                executablePath: await chromium.executablePath(),
+                headless: chromium.headless
+            });
+        } else {
+            browser = await puppeteer.launch({
+                headless: true,
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            });
+        }
+
         const page = await browser.newPage();
-        
-        // Set user agent
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+
+        await page.setUserAgent(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        );
 
         let trackers = [];
 
         page.on("request", request => {
             const reqUrl = request.url();
-            
+
             if (trackerDomains.some(domain => reqUrl.includes(domain))) {
                 trackers.push(reqUrl);
             }
         });
 
-        await page.goto(url, { 
-            waitUntil: "networkidle2", 
-            timeout: 30000 
+        await page.goto(url, {
+            waitUntil: "networkidle2",
+            timeout: 30000
         });
-        
-        // Wait a bit for dynamic content
+
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         await browser.close();
 
         return [...new Set(trackers)];
+
     } catch (error) {
         if (browser) await browser.close();
         throw new Error(`Failed to scan website: ${error.message}`);
